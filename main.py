@@ -1,16 +1,27 @@
 from fastapi import FastAPI, HTTPException
 import os, requests
 
+from fastapi.middleware.cors import CORSMiddleware
+
+
 app = FastAPI()
 
 API_KEY = os.getenv("API_KEY") #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" 
 URL = "https://openrouter.ai/api/v1/chat/completions"
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # anyone
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 HEADERS = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json",
-    "HTTP-Referer": "http://localhost",   # required field for OpenRouter policies
-    # "X-Title": "Local Test Service"
+    "HTTP-Referer": "https://openrouter.ai",  # arbitrary public domain
+    "X-Title": "Public FastAPI AI Proxy"
 }
 
 @app.post("/ask")
