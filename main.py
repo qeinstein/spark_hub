@@ -1,13 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import os, requests
 from dotenv import load_dotenv
 
-load_dotenv()
-
 app = FastAPI()
-
-# Allow anyone to call the endpoint
+load_dotenv()
+# Allow public calls
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,12 +21,15 @@ URL = "https://openrouter.ai/api/v1/chat/completions"
 HEADERS = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json",
-    "HTTP-Referer": "https://openrouter.ai",
+    "HTTP-Referer": "https://openrouter.ai",  # required by OpenRouter
     "X-Title": "Public AI Proxy"
 }
 
-@app.get("/ask")
-def ask(user_input: str): 
+class AskRequest(BaseModel):
+    user_input: str
+
+@app.post("/ask")
+def ask(req: AskRequest):
     if not API_KEY:
         raise HTTPException(status_code=500, detail="API_KEY not set")
 
@@ -38,7 +40,7 @@ def ask(user_input: str):
                 "role": "system",
                 "content": "You're an educational assistant, reply in the same language the user sent the message in."
             },
-            { "role": "user", "content": user_input }
+            { "role": "user", "content": req.user_input }
         ],
         "temperature": 0.3
     }
