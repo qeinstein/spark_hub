@@ -1,19 +1,14 @@
-from fastapi import FastAPI, HTTPException
+
+
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
 import os, requests
 from dotenv import load_dotenv
 
+
 app = FastAPI()
+
 load_dotenv()
-# Allow public calls
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 API_KEY = os.getenv("API_KEY")
 URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -24,29 +19,32 @@ HEADERS = {
     "HTTP-Referer": "https://openrouter.ai",  # required by OpenRouter
     "X-Title": "Public AI Proxy"
 }
-
-class AskRequest(BaseModel):
-    user_input: str
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/ask")
-def ask(req: AskRequest):
-    if not API_KEY:
-        raise HTTPException(status_code=500, detail="API_KEY not set")
-
+def ask(user_input: str):
     payload = {
         "model": "mistralai/mistral-small-3.1-24b-instruct:free",
         "messages": [
-            {
-                "role": "system",
-                "content": "You're an educational assistant, reply in the same language the user sent the message in."
-            },
-            { "role": "user", "content": req.user_input }
+            { "role": "system", "content": "You're an educational assistant, reply in the same language the user sent the message in." },
+            { "role": "user", "content": user_input }
         ],
         "temperature": 0.3
     }
 
     resp = requests.post(URL, headers=HEADERS, json=payload)
+
     if resp.status_code != 200:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
-    return {"response": resp.json()["choices"][0]["message"]["content"]}
+    data = resp.json()
+    return {
+        "response": data["choices"][0]["message"]["content"]
+    }
+
